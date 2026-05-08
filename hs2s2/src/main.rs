@@ -1,12 +1,8 @@
-use std::fs::File;
+use std::fs::{self, File};
 
 use svg::node::element::tag::Type;
 use svg::parser::Event;
 use valve_key_value::{KvObject, KvSerilizationFormat};
-
-fn f2size(size: f64, v: f64) -> u16 {
-    (v / size * 32768.0/* 2^15 */) as u16
-}
 
 #[derive(Debug, Clone)]
 struct RectProperties {
@@ -23,63 +19,41 @@ struct Rect {
     properties: Option<RectProperties>,
 }
 
-fn main() -> std::io::Result<()> {
-    let input_path = std::env::args().nth(1).expect("No argument provided");
+fn f2size(size: f64, v: f64) -> u16 {
+    (v / size * 32768.0/* 2^15 */) as u16
+}
 
-    let mut output = File::create("output.rect")?;
-
+fn parse_svg(file_str: &str) -> Option<Vec<Rect>> {
     let mut rects: Vec<Rect> = vec![];
+
     let mut width: Option<f64> = None;
     let mut height: Option<f64> = None;
 
-    let mut content = String::new();
-    for e in svg::open(input_path, &mut content).expect("not a valid svg") {
+    for e in svg::read(file_str).expect("not a valid svg") {
         match e {
-            Event::Tag(path, node_type, attributes) => match path {
+            Event::Tag(path, node_type, attribs) => match path {
                 "svg" if node_type == Type::Start => {
-                    width = Some(
-                        attributes
-                            .get("width")
-                            .expect("width not found")
-                            .parse::<f64>()
-                            .expect("invalid value for width"),
-                    );
-                    height = Some(
-                        attributes
-                            .get("height")
-                            .expect("height not found")
-                            .parse::<f64>()
-                            .expect("invalid value for height"),
-                    );
+                    width = Some(attribs.get("width")?.parse::<f64>().ok()?);
+                    height = Some(attribs.get("height")?.parse::<f64>().ok()?);
                 }
                 "rect" if node_type == Type::Start => {
-                    let rect_x = f2size(
-                        width.expect(""),
-                        attributes.get("x").expect("").parse::<f64>().expect(""),
-                    );
-                    let rect_y = f2size(
-                        height.expect(""),
-                        attributes.get("y").expect("").parse::<f64>().expect(""),
-                    );
-                    let rect_width = f2size(
-                        width.expect(""),
-                        attributes.get("width").expect("").parse::<f64>().expect(""),
-                    );
-                    let rect_height = f2size(
-                        height.expect(""),
-                        attributes
-                            .get("height")
-                            .expect("")
-                            .parse::<f64>()
-                            .expect(""),
-                    );
-                    rects.push(Rect {
-                        x: rect_x,
-                        y: rect_y,
-                        width: rect_width,
-                        height: rect_height,
-                        properties: None,
-                    });
+                    if let Some(width) = width
+                        && let Some(height) = height
+                    {
+                        let x = f2size(width, attribs.get("x")?.parse::<f64>().ok()?);
+                        let y = f2size(height, attribs.get("y")?.parse::<f64>().ok()?);
+                        let w = f2size(width, attribs.get("width")?.parse::<f64>().ok()?);
+                        let h = f2size(height, attribs.get("height")?.parse::<f64>().ok()?);
+                        rects.push(Rect {
+                            x,
+                            y,
+                            width: w,
+                            height: h,
+                            properties: None,
+                        });
+                    } else {
+                        return None; // Missing header
+                    }
                 }
                 _ => (),
             },
@@ -87,48 +61,60 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    let mut kv_rects: Vec<KvObject> = vec![];
+    Some(rects)
+}
 
-    for rect in &rects {
-        let properties: KvObject;
+fn main() -> std::io::Result<()> {
+    let input_path = std::env::args().nth(1).expect("No argument provided");
 
-        if let Some(props) = &rect.properties {
-            properties = KvObject::Map(vec![
+    let mut output = File::create("output.rect")?;
+
+    let file_str = fs::read_to_string(input_path)?;
+    let rects = parse_svg(&file_str).expect("failed to parse SVG file");
+
+    let kv_rects = rects
+        .iter()
+        .map(|rect| {
+            let properties: KvObject;
+
+            if let Some(props) = &rect.properties {
+                properties = KvObject::Map(vec![
+                    (
+                        "allowRotation".to_string(),
+                        KvObject::Bool(props.allow_tiling),
+                    ),
+                    (
+                        "allowRotation".to_string(),
+                        KvObject::Bool(props.allow_rotation),
+                    ),
+                ]);
+            } else {
+                properties = KvObject::Null;
+            }
+
+            KvObject::Map(vec![
                 (
-                    "allowRotation".to_string(),
-                    KvObject::Bool(props.allow_tiling),
+                    "min".to_string(),
+                    KvObject::Array(vec![
+                        KvObject::Int(rect.x.into()),
+                        KvObject::Int(rect.y.into()),
+                    ]),
                 ),
                 (
-                    "allowRotation".to_string(),
-                    KvObject::Bool(props.allow_rotation),
+                    "max".to_string(),
+                    KvObject::Array(vec![
+                        KvObject::Int((rect.x + rect.width).into()),
+                        KvObject::Int((rect.y + rect.height).into()),
+                    ]),
                 ),
-            ]);
-        } else {
-            properties = KvObject::Null;
-        }
-
-        kv_rects.push(KvObject::Map(vec![
-            (
-                "min".to_string(),
-                KvObject::Array(vec![
-                    KvObject::Int(rect.x.into()),
-                    KvObject::Int(rect.y.into()),
-                ]),
-            ),
-            (
-                "max".to_string(),
-                KvObject::Array(vec![
-                    KvObject::Int((rect.x + rect.width).into()),
-                    KvObject::Int((rect.y + rect.height).into()),
-                ]),
-            ),
-            (
-                "inset".to_string(),
-                KvObject::Array(vec![KvObject::Int(0), KvObject::Int(0)]),
-            ),
-            ("properties".to_string(), properties),
-        ]));
-    }
+                (
+                    "inset".to_string(),
+                    KvObject::Array(vec![KvObject::Int(0), KvObject::Int(0)]),
+                ),
+                ("properties".to_string(), properties),
+            ])
+        })
+        .collect::<Vec<_>>();
 
     let kv = KvObject::Map(vec![(
         "RectangleSets".to_string(),
