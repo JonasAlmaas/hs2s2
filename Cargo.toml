@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 svg = "0.18.0"
+uuid = "1.23.1"

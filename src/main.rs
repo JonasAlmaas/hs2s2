@@ -1,8 +1,11 @@
+mod valve_key_value;
+
 use std::fs::File;
-use std::io::Write;
 
 use svg::node::element::tag::Type;
 use svg::parser::Event;
+
+use crate::valve_key_value::{KvObject, KvSerilizationFormat};
 
 fn f2size(size: f64, v: f64) -> u16 {
     (v / size * 32768.0/* 2^15 */) as u16
@@ -87,46 +90,57 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    output.write_all(b"<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->\r\n")?;
-    output.write_all(b"{\r\n")?;
-    output.write_all(b"\tRectangleSets =\r\n")?;
-    output.write_all(b"\t[\r\n")?;
-    output.write_all(b"\t\t{\r\n")?;
-    output.write_all(b"\t\t\tname = \"\"\r\n")?;
-    output.write_all(b"\t\t\tproperties = null\r\n")?;
-    output.write_all(b"\t\t\trectangles =\r\n")?;
-    output.write_all(b"\t\t\t[\r\n")?;
-    for rect in &rects {
-        output.write_all(b"\t\t\t\t{\r\n")?;
-        output.write_all(format!("\t\t\t\t\tmin = [ {}, {} ]\r\n", rect.x, rect.y).as_bytes())?;
-        output.write_all(
-            format!(
-                "\t\t\t\t\tmax = [ {}, {} ]\r\n",
-                rect.x + rect.width,
-                rect.y + rect.height
-            )
-            .as_bytes(),
-        )?;
-        output.write_all(b"\t\t\t\t\tinset = [ 0, 0 ]\r\n")?;
-        if let Some(props) = &rect.properties {
-            output.write_all(b"\t\t\t\t\tproperties =\r\n")?;
-            output.write_all(b"\t\t\t\t\t{\r\n")?;
-            output.write_all(
-                format!("\t\t\t\t\t\tallowTiling = {}\r\n", props.allow_tiling).as_bytes(),
-            )?;
-            output.write_all(
-                format!("\t\t\t\t\t\tallowRotation = {}\r\n", props.allow_rotation).as_bytes(),
-            )?;
-            output.write_all(b"\t\t\t\t\t}\r\n")?;
-        } else {
-            output.write_all(b"\t\t\t\t\tproperties = null\r\n")?;
-        }
-        output.write_all(b"\t\t\t\t},\r\n")?;
-    }
-    output.write_all(b"\t\t\t]\r\n")?;
-    output.write_all(b"\t\t}\r\n")?;
-    output.write_all(b"\t]\r\n")?;
-    output.write_all(b"}\r\n")?;
+    let mut kv_rects: Vec<KvObject> = vec![];
 
-    Ok(())
+    for rect in &rects {
+        let properties: KvObject;
+
+        if let Some(props) = &rect.properties {
+            properties = KvObject::Map(vec![
+                (
+                    "allowRotation".to_string(),
+                    KvObject::Bool(props.allow_tiling),
+                ),
+                (
+                    "allowRotation".to_string(),
+                    KvObject::Bool(props.allow_rotation),
+                ),
+            ]);
+        } else {
+            properties = KvObject::Null;
+        }
+
+        kv_rects.push(KvObject::Map(vec![
+            (
+                "min".to_string(),
+                KvObject::Array(vec![
+                    KvObject::Int(rect.x.into()),
+                    KvObject::Int(rect.y.into()),
+                ]),
+            ),
+            (
+                "max".to_string(),
+                KvObject::Array(vec![
+                    KvObject::Int((rect.x + rect.width).into()),
+                    KvObject::Int((rect.y + rect.height).into()),
+                ]),
+            ),
+            (
+                "inset".to_string(),
+                KvObject::Array(vec![KvObject::Int(0), KvObject::Int(0)]),
+            ),
+            ("properties".to_string(), properties),
+        ]));
+    }
+
+    let kv = KvObject::Map(vec![(
+        "RectangleSets".to_string(),
+        KvObject::Array(vec![KvObject::Map(vec![
+            ("name".to_string(), KvObject::String("".to_string())),
+            ("properties".to_string(), KvObject::Null),
+            ("rectangles".to_string(), KvObject::Array(kv_rects)),
+        ])]),
+    )]);
+
+    kv.serialize(KvSerilizationFormat::Kv3Text, &mut output)
 }
