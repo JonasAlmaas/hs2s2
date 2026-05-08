@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024.000000" height="256.000000">
+    <rect id="smallsquare3" x = "1002.666687" y="192.000000" width="21.333334" height="21.333334" fill="#DE91C4">
+        <title>smallsquare3</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smallsquare2" x = "981.333313" y="192.000000" width="21.333334" height="21.333334" fill="#DE91C4">
+        <title>smallsquare2</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smallsquare" x = "960.000000" y="192.000000" width="21.333334" height="21.333334" fill="#A8776D">
+        <title>smallsquare</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midsquare1" x = "896.000000" y="96.000000" width="32.000000" height="32.000000" fill="#606BAF">
+        <title>midsquare1</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midsquare3" x = "960.000000" y="96.000000" width="32.000000" height="32.000000" fill="#DE91C4">
+        <title>midsquare3</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midsquare4" x = "992.000000" y="96.000000" width="32.000000" height="32.000000" fill="#80FF00">
+        <title>midsquare4</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midsquare2" x = "928.000000" y="96.000000" width="32.000000" height="32.000000" fill="#FF8000">
+        <title>midsquare2</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smallrectsmaller" x = "896.000000" y="192.000000" width="64.000000" height="21.333334" fill="#DE91C4">
+        <title>smallrectsmaller</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrectsmall2" x = "832.000000" y="96.000000" width="64.000000" height="32.000000" fill="#00FF80">
+        <title>midrectsmall2</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrectsmall1" x = "768.000000" y="96.000000" width="64.000000" height="32.000000" fill="#0080FF">
+        <title>midrectsmall1</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smallrectsmall" x = "768.000000" y="192.000000" width="128.000000" height="21.333334" fill="#DE91C4">
+        <title>smallrectsmall</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrect1" x = "0.000000" y="96.000000" width="128.000000" height="32.000000" fill="#FFFF00">
+        <title>midrect1</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrect2" x = "128.000000" y="96.000000" width="128.000000" height="32.000000" fill="#0000FF">
+        <title>midrect2</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smallrectmid" x = "512.000000" y="192.000000" width="256.000000" height="21.333334" fill="#DE91C4">
+        <title>smallrectmid</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrectmid2" x = "512.000000" y="96.000000" width="256.000000" height="32.000000" fill="#80FF00">
+        <title>midrectmid2</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrectmid1" x = "256.000000" y="96.000000" width="256.000000" height="32.000000" fill="#FF8000">
+        <title>midrectmid1</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smallrectlong" x = "0.000000" y="192.000000" width="512.000000" height="21.333334" fill="#DE91C4">
+        <title>smallrectlong</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrectlong1" x = "0.000000" y="64.000000" width="512.000000" height="32.000000" fill="#FF0000">
+        <title>midrectlong1</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midrectlong2" x = "512.000000" y="64.000000" width="512.000000" height="32.000000" fill="#00FF00">
+        <title>midrectlong2</title>
+        <metadata><rizomuv_01>table {Hotspot table {} }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smalltiling1" x = "0.000000" y="213.333328" width="1024.000000" height="21.333332" fill="#DE91C4">
+        <title>smalltiling1</title>
+        <metadata><rizomuv_01>table {Hotspot table {FitAxis string "Vertical" } }</rizomuv_01></metadata>
+    </rect>
+    <rect id="smalltiling2" x = "0.000000" y="234.666672" width="1024.000000" height="21.333334" fill="#DE91C4">
+        <title>smalltiling2</title>
+        <metadata><rizomuv_01>table {Hotspot table {FitAxis string "Vertical" } }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midtiling1" x = "0.000000" y="128.000000" width="1024.000000" height="32.000004" fill="#DE91C4">
+        <title>midtiling1</title>
+        <metadata><rizomuv_01>table {Hotspot table {FitAxis string "Vertical" } }</rizomuv_01></metadata>
+    </rect>
+    <rect id="midtiling2" x = "0.000000" y="157.333328" width="1024.000000" height="34.666668" fill="#DE91C4">
+        <title>midtiling2</title>
+        <metadata><rizomuv_01>table {Hotspot table {FitAxis string "Vertical" } }</rizomuv_01></metadata>
+    </rect>
+    <rect id="largetiling" x = "0.000000" y="0.000000" width="1024.000000" height="64.000000" fill="#8000FF">
+        <title>largetiling</title>
+        <metadata><rizomuv_01>table {Hotspot table {FitAxis string "Vertical" } }</rizomuv_01></metadata>
+    </rect>
+</svg>
