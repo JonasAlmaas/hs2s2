@@ -1,8 +1,11 @@
-[package]
-name = "hs2s2"
-version = "0.1.0"
-edition = "2024"
+[workspace]
 
-[dependencies]
-svg = "0.18.0"
-uuid = "1.23.1"
+resolver = "3"
+members = ["hs2s2", "valve_key_value"]
+
+[profile.release]
+
+strip = true
+lto = "fat"
+panic = "abort"
+

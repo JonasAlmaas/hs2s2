@@ -1,0 +1,9 @@
+[package]
+name = "hs2s2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+valve_key_value = { path = "../valve_key_value"}
+
+svg = "0.18.0"

@@ -1,11 +1,8 @@
-mod valve_key_value;
-
 use std::fs::File;
 
 use svg::node::element::tag::Type;
 use svg::parser::Event;
-
-use crate::valve_key_value::{KvObject, KvSerilizationFormat};
+use valve_key_value::{KvObject, KvSerilizationFormat};
 
 fn f2size(size: f64, v: f64) -> u16 {
     (v / size * 32768.0/* 2^15 */) as u16
