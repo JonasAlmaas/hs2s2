@@ -2,6 +2,8 @@ pub mod kv3;
 
 use std::io::Write;
 
+use indexmap::IndexMap;
+
 #[derive(Debug, Clone, Copy)]
 pub enum KvSerilizationFormat {
     Kv3Text,
@@ -14,7 +16,7 @@ pub enum KvObject {
     Int(i64),
     Float(f64),
     Bool(bool),
-    Map(Vec<(String, KvObject)>),
+    Map(IndexMap<String, KvObject>),
     Array(Vec<KvObject>),
     Bin(Vec<u8>),
 }

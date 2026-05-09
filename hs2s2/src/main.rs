@@ -1,5 +1,6 @@
 use std::fs::{self, File};
 
+use indexmap::indexmap;
 use svg::node::element::tag::Type;
 use svg::parser::Event;
 use valve_key_value::{KvObject, KvSerilizationFormat};
@@ -78,52 +79,40 @@ fn main() -> std::io::Result<()> {
             let properties: KvObject;
 
             if let Some(props) = &rect.properties {
-                properties = KvObject::Map(vec![
-                    (
-                        "allowRotation".to_string(),
-                        KvObject::Bool(props.allow_tiling),
-                    ),
-                    (
-                        "allowRotation".to_string(),
-                        KvObject::Bool(props.allow_rotation),
-                    ),
-                ]);
+                properties = KvObject::Map(indexmap! {
+                    "allowRotation".to_string() => KvObject::Bool(props.allow_tiling),
+                    "allowRotation".to_string() => KvObject::Bool(props.allow_rotation),
+                });
             } else {
                 properties = KvObject::Null;
             }
 
-            KvObject::Map(vec![
-                (
-                    "min".to_string(),
-                    KvObject::Array(vec![
+            KvObject::Map(indexmap! {
+                    "min".to_string() => KvObject::Array(vec![
                         KvObject::Int(rect.x.into()),
                         KvObject::Int(rect.y.into()),
                     ]),
-                ),
-                (
-                    "max".to_string(),
-                    KvObject::Array(vec![
+                    "max".to_string() => KvObject::Array(vec![
                         KvObject::Int((rect.x + rect.width).into()),
                         KvObject::Int((rect.y + rect.height).into()),
                     ]),
-                ),
-                (
-                    "inset".to_string(),
-                    KvObject::Array(vec![KvObject::Int(0), KvObject::Int(0)]),
-                ),
-                ("properties".to_string(), properties),
-            ])
+                    "inset".to_string() => KvObject::Array(vec![
+                        KvObject::Int(0),
+                        KvObject::Int(0)
+                    ]),
+               "properties".to_string() => properties,
+            })
         })
         .collect::<Vec<_>>();
 
-    let kv = KvObject::Map(vec![(
-        "RectangleSets".to_string(),
-        KvObject::Array(vec![KvObject::Map(vec![
-            ("name".to_string(), KvObject::String("".to_string())),
-            ("properties".to_string(), KvObject::Null),
-            ("rectangles".to_string(), KvObject::Array(kv_rects)),
-        ])]),
-    )]);
+    let kv = KvObject::Map(indexmap! {
+        "RectangleSets".to_string() => KvObject::Array(
+            vec![KvObject::Map(indexmap!{
+                "name".to_string() => KvObject::String("".to_string()),
+                "properties".to_string() => KvObject::Null,
+                "rectangles".to_string() => KvObject::Array(kv_rects),
+            })],
+    )});
 
     kv.serialize(KvSerilizationFormat::Kv3Text, &mut output)
 }

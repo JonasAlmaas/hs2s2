@@ -7,3 +7,4 @@ edition = "2024"
 valve_key_value = { path = "../valve_key_value"}
 
 svg = "0.18.0"
+indexmap = "2.14.0"
