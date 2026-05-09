@@ -75,7 +75,7 @@ impl KvObject {
 
                         if ix < arr.len() - 1 {
                             out.write_all(b",")?;
-                        } else {
+                        } else if !multiline {
                             out.write_all(b" ")?;
                         }
                     }
