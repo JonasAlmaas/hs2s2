@@ -5,6 +5,7 @@ use std::io::Write;
 
 use indexmap::IndexMap;
 
+use crate::kv3::Kv3Id;
 use crate::serializer::kv3_text;
 
 #[derive(Debug, Clone, Copy)]
@@ -24,31 +25,45 @@ pub enum KvObject {
     Bin(Vec<u8>),
 }
 
+#[derive(Debug, Clone)]
+pub struct KvHeader {
+    pub encoding: Kv3Id,
+    pub format: Kv3Id,
+}
+
 impl KvObject {
     pub fn serialize(
         &self,
-        format: KvSerilizationFormat,
         out: &mut impl Write,
+        serilization_format: KvSerilizationFormat,
+        header: Option<&KvHeader>,
     ) -> Result<(), std::io::Error> {
-        match format {
+        match serilization_format {
             KvSerilizationFormat::Kv3Text => {
                 /*if !matches!(self, KvObject::Map(_)) {
                 }*/
 
-                out.write_fmt(format_args!(
-                    "<!-- kv3 {} {} -->",
-                    kv3::Kv3Id {
-                        name: "encoding:text".to_string(),
-                        id: kv3::ENC_EXT,
-                    },
-                    kv3::Kv3Id {
-                        name: "format:generic".to_string(),
-                        id: kv3::FMT_GENERIC,
-                    },
-                ))?;
+                let (encoding, format) = if let Some(header) = header {
+                    (&header.encoding, &header.format)
+                } else {
+                    (
+                        &Kv3Id {
+                            name: "text".to_string(),
+                            id: kv3::ENC_EXT,
+                        },
+                        &Kv3Id {
+                            name: "generic".to_string(),
+                            id: kv3::FMT_GENERIC,
+                        },
+                    )
+                };
 
-                kv3_text::serialize_object(self, 0, out)?;
-                out.write_all(b"\r\n")?;
+                out.write_fmt(format_args!(
+                    "<!-- kv3 encoding:{encoding} format:{format} -->"
+                ))?;
+                out.write_all(kv3_text::NEW_LINE)?;
+                kv3_text::serialize_object(out, self, 0)?;
+                out.write_all(kv3_text::NEW_LINE)?;
 
                 Ok(())
             }

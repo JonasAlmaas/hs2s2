@@ -114,5 +114,5 @@ fn main() -> std::io::Result<()> {
             })],
     )});
 
-    kv.serialize(KvSerilizationFormat::Kv3Text, &mut output)
+    kv.serialize(&mut output, KvSerilizationFormat::Kv3Text, None)
 }

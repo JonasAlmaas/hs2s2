@@ -4,9 +4,9 @@ use indexmap::IndexMap;
 
 use crate::KvObject;
 
-const NEW_LINE: &[u8] = b"\r\n";
+pub const NEW_LINE: &[u8] = b"\r\n";
 
-fn write_indent(indent: usize, out: &mut impl Write) -> Result<(), std::io::Error> {
+fn write_indent(out: &mut impl Write, indent: usize) -> Result<(), std::io::Error> {
     for _ in 0..indent {
         out.write_all(b"\t")?;
     }
@@ -14,12 +14,15 @@ fn write_indent(indent: usize, out: &mut impl Write) -> Result<(), std::io::Erro
 }
 
 fn serialize_map(
+    out: &mut impl Write,
     map: &IndexMap<String, KvObject>,
     indent: usize,
-    out: &mut impl Write,
 ) -> Result<(), std::io::Error> {
-    out.write_all(NEW_LINE)?;
-    write_indent(indent, out)?;
+    if indent > 0 {
+        out.write_all(NEW_LINE)?;
+        write_indent(out, indent)?;
+    }
+
     out.write_all(b"{")?;
     out.write_all(NEW_LINE)?;
 
@@ -27,29 +30,29 @@ fn serialize_map(
         let indent = indent + 1;
 
         for (k, v) in map {
-            write_indent(indent, out)?;
+            write_indent(out, indent)?;
             out.write_fmt(format_args!("{} =", k))?;
-            serialize_object(v, indent, out)?;
+            serialize_object(out, v, indent)?;
             out.write_all(NEW_LINE)?;
         }
     }
 
-    write_indent(indent, out)?;
+    write_indent(out, indent)?;
     out.write_all(b"}")?;
 
     Ok(())
 }
 
 fn serialize_array(
+    out: &mut impl Write,
     arr: &Vec<KvObject>,
     indent: usize,
-    out: &mut impl Write,
 ) -> Result<(), std::io::Error> {
     let multiline = arr.len() > 0 && matches!(arr[0], KvObject::Map(_));
 
     if multiline {
         out.write_all(NEW_LINE)?;
-        write_indent(indent, out)?;
+        write_indent(out, indent)?;
     } else {
         out.write_all(b" ")?;
     }
@@ -57,7 +60,7 @@ fn serialize_array(
     out.write_all(b"[")?;
 
     for (ix, v) in arr.iter().enumerate() {
-        serialize_object(v, indent + 1, out)?;
+        serialize_object(out, v, indent + 1)?;
 
         if ix < arr.len() - 1 {
             out.write_all(b",")?;
@@ -68,7 +71,7 @@ fn serialize_array(
 
     if multiline {
         out.write_all(NEW_LINE)?;
-        write_indent(indent, out)?;
+        write_indent(out, indent)?;
     }
 
     out.write_all(b"]")?;
@@ -77,9 +80,9 @@ fn serialize_array(
 }
 
 pub fn serialize_object(
+    out: &mut impl Write,
     obj: &KvObject,
     indent: usize,
-    out: &mut impl Write,
 ) -> Result<(), std::io::Error> {
     match obj {
         KvObject::Null => out.write_all(b" null"),
@@ -87,8 +90,8 @@ pub fn serialize_object(
         KvObject::Int(v) => out.write_fmt(format_args!(" {v}")),
         KvObject::Float(v) => out.write_fmt(format_args!(" {v}")),
         KvObject::Bool(v) => out.write_fmt(format_args!(" {v}")),
-        KvObject::Map(map) => serialize_map(map, indent, out),
-        KvObject::Array(arr) => serialize_array(arr, indent, out),
+        KvObject::Map(map) => serialize_map(out, map, indent),
+        KvObject::Array(arr) => serialize_array(out, arr, indent),
         KvObject::Bin(_) => todo!(),
     }
 }
@@ -101,7 +104,7 @@ mod tests {
     #[test]
     fn test_null() {
         let mut buf = Vec::new();
-        serialize_object(&KvObject::Null, 0, &mut buf).unwrap();
+        serialize_object(&mut buf, &KvObject::Null, 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
         assert_eq!(str, " null");
     }
@@ -109,7 +112,7 @@ mod tests {
     #[test]
     fn test_string() {
         let mut buf = Vec::new();
-        serialize_object(&KvObject::String("test string".to_string()), 0, &mut buf).unwrap();
+        serialize_object(&mut buf, &KvObject::String("test string".to_string()), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
         assert_eq!(str, " \"test string\"");
     }
@@ -117,7 +120,7 @@ mod tests {
     #[test]
     fn test_int() {
         let mut buf = Vec::new();
-        serialize_object(&KvObject::Int(1234567890), 0, &mut buf).unwrap();
+        serialize_object(&mut buf, &KvObject::Int(1234567890), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
         assert_eq!(str, " 1234567890");
     }
@@ -125,7 +128,7 @@ mod tests {
     #[test]
     fn test_bool_true() {
         let mut buf = Vec::new();
-        serialize_object(&KvObject::Bool(true), 0, &mut buf).unwrap();
+        serialize_object(&mut buf, &KvObject::Bool(true), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
         assert_eq!(str, " true");
     }
@@ -133,7 +136,7 @@ mod tests {
     #[test]
     fn test_bool_false() {
         let mut buf = Vec::new();
-        serialize_object(&KvObject::Bool(false), 0, &mut buf).unwrap();
+        serialize_object(&mut buf, &KvObject::Bool(false), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
         assert_eq!(str, " false");
     }
@@ -142,19 +145,18 @@ mod tests {
     fn test_serialize_map() {
         let mut buf = Vec::new();
         serialize_map(
+            &mut buf,
             &indexmap! {
                "foo".to_string() => KvObject::Null,
                "bar".to_string() => KvObject::Int(1234),
             },
             0,
-            &mut buf,
         )
         .unwrap();
         let str = String::from_utf8(buf).unwrap();
         assert_eq!(
             str,
-            "\r
-{\r
+            "{\r
 \tfoo = null\r
 \tbar = 1234\r
 }"
@@ -165,13 +167,13 @@ mod tests {
     fn test_serialize_array() {
         let mut buf = Vec::new();
         serialize_array(
+            &mut buf,
             &vec![
                 KvObject::Int(1234),
                 KvObject::Int(5678),
                 KvObject::Int(9012),
             ],
             0,
-            &mut buf,
         )
         .unwrap();
         let str = String::from_utf8(buf).unwrap();
@@ -182,6 +184,7 @@ mod tests {
     fn test_serialize_multiline_array() {
         let mut buf = Vec::new();
         serialize_array(
+            &mut buf,
             &vec![
                 KvObject::Map(indexmap! {
                     "foo".to_string() => KvObject::Int(1),
@@ -193,7 +196,6 @@ mod tests {
                 }),
             ],
             0,
-            &mut buf,
         )
         .unwrap();
         let str = String::from_utf8(buf).unwrap();
