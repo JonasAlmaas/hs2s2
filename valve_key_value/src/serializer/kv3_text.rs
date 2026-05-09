@@ -13,16 +13,26 @@ fn write_indent(out: &mut impl Write, indent: usize) -> Result<(), std::io::Erro
     Ok(())
 }
 
+fn is_multiline(obj: &KvObject) -> bool {
+    match obj {
+        KvObject::Null => false,
+        KvObject::String(_) => false,
+        KvObject::Int(_) => false,
+        KvObject::Float(_) => false,
+        KvObject::Bool(_) => false,
+        KvObject::Map(_) => true,
+        KvObject::Array(arr) => {
+            arr.len() > 0 && matches!(arr[0], KvObject::Array(_) | KvObject::Map(_))
+        }
+        KvObject::Bin(_) => todo!(),
+    }
+}
+
 fn serialize_map(
     out: &mut impl Write,
     map: &IndexMap<String, KvObject>,
     indent: usize,
 ) -> Result<(), std::io::Error> {
-    if indent > 0 {
-        out.write_all(NEW_LINE)?;
-        write_indent(out, indent)?;
-    }
-
     out.write_all(b"{")?;
     out.write_all(NEW_LINE)?;
 
@@ -31,7 +41,11 @@ fn serialize_map(
 
         for (k, v) in map {
             write_indent(out, indent)?;
-            out.write_fmt(format_args!("{} =", k))?;
+            out.write_fmt(format_args!("{} = ", k))?;
+            if is_multiline(v) {
+                out.write_all(NEW_LINE)?;
+                write_indent(out, indent)?;
+            }
             serialize_object(out, v, indent)?;
             out.write_all(NEW_LINE)?;
         }
@@ -48,24 +62,34 @@ fn serialize_array(
     arr: &Vec<KvObject>,
     indent: usize,
 ) -> Result<(), std::io::Error> {
-    let multiline = arr.len() > 0 && matches!(arr[0], KvObject::Map(_));
-
-    if multiline {
-        out.write_all(NEW_LINE)?;
-        write_indent(out, indent)?;
-    } else {
-        out.write_all(b" ")?;
-    }
+    let multiline = arr.len() > 0 && matches!(arr[0], KvObject::Array(_) | KvObject::Map(_));
 
     out.write_all(b"[")?;
 
-    for (ix, v) in arr.iter().enumerate() {
-        serialize_object(out, v, indent + 1)?;
+    {
+        let indent = indent + 1;
 
-        if ix < arr.len() - 1 {
-            out.write_all(b",")?;
-        } else if !multiline {
+        if multiline {
+            out.write_all(NEW_LINE)?;
+            write_indent(out, indent)?;
+        } else {
             out.write_all(b" ")?;
+        }
+
+        for (ix, v) in arr.iter().enumerate() {
+            serialize_object(out, v, indent)?;
+
+            if ix < arr.len() - 1 {
+                out.write_all(b",")?;
+                if multiline {
+                    out.write_all(NEW_LINE)?;
+                    write_indent(out, indent)?;
+                } else {
+                    out.write_all(b" ")?;
+                }
+            } else if !multiline {
+                out.write_all(b" ")?;
+            }
         }
     }
 
@@ -85,11 +109,11 @@ pub fn serialize_object(
     indent: usize,
 ) -> Result<(), std::io::Error> {
     match obj {
-        KvObject::Null => out.write_all(b" null"),
-        KvObject::String(v) => out.write_fmt(format_args!(" \"{v}\"")),
-        KvObject::Int(v) => out.write_fmt(format_args!(" {v}")),
-        KvObject::Float(v) => out.write_fmt(format_args!(" {v}")),
-        KvObject::Bool(v) => out.write_fmt(format_args!(" {v}")),
+        KvObject::Null => out.write_all(b"null"),
+        KvObject::String(v) => out.write_fmt(format_args!("\"{v}\"")),
+        KvObject::Int(v) => out.write_all(v.to_string().as_bytes()),
+        KvObject::Float(v) => out.write_all(v.to_string().as_bytes()),
+        KvObject::Bool(v) => out.write_all(v.to_string().as_bytes()),
         KvObject::Map(map) => serialize_map(out, map, indent),
         KvObject::Array(arr) => serialize_array(out, arr, indent),
         KvObject::Bin(_) => todo!(),
@@ -106,7 +130,7 @@ mod tests {
         let mut buf = Vec::new();
         serialize_object(&mut buf, &KvObject::Null, 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
-        assert_eq!(str, " null");
+        assert_eq!(str, "null");
     }
 
     #[test]
@@ -114,7 +138,7 @@ mod tests {
         let mut buf = Vec::new();
         serialize_object(&mut buf, &KvObject::String("test string".to_string()), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
-        assert_eq!(str, " \"test string\"");
+        assert_eq!(str, "\"test string\"");
     }
 
     #[test]
@@ -122,7 +146,7 @@ mod tests {
         let mut buf = Vec::new();
         serialize_object(&mut buf, &KvObject::Int(1234567890), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
-        assert_eq!(str, " 1234567890");
+        assert_eq!(str, "1234567890");
     }
 
     #[test]
@@ -130,7 +154,7 @@ mod tests {
         let mut buf = Vec::new();
         serialize_object(&mut buf, &KvObject::Bool(true), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
-        assert_eq!(str, " true");
+        assert_eq!(str, "true");
     }
 
     #[test]
@@ -138,7 +162,7 @@ mod tests {
         let mut buf = Vec::new();
         serialize_object(&mut buf, &KvObject::Bool(false), 0).unwrap();
         let str = String::from_utf8(buf).unwrap();
-        assert_eq!(str, " false");
+        assert_eq!(str, "false");
     }
 
     #[test]
@@ -177,7 +201,7 @@ mod tests {
         )
         .unwrap();
         let str = String::from_utf8(buf).unwrap();
-        assert_eq!(str, " [ 1234, 5678, 9012 ]");
+        assert_eq!(str, "[ 1234, 5678, 9012 ]");
     }
 
     #[test]
@@ -201,8 +225,7 @@ mod tests {
         let str = String::from_utf8(buf).unwrap();
         assert_eq!(
             str,
-            "\r
-[\r
+            "[\r
 \t{\r
 \t\tfoo = 1\r
 \t\tbar = 2\r
