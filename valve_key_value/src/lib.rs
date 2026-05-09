@@ -67,17 +67,13 @@ impl KvObject {
 
                 out.write_all(b"[")?;
 
-                {
-                    let indent = indent + 1;
+                for (ix, v) in arr.iter().enumerate() {
+                    v.serialize_kv3_text(indent + 1, out)?;
 
-                    for (ix, v) in arr.iter().enumerate() {
-                        v.serialize_kv3_text(indent, out)?;
-
-                        if ix < arr.len() - 1 {
-                            out.write_all(b",")?;
-                        } else if !multiline {
-                            out.write_all(b" ")?;
-                        }
+                    if ix < arr.len() - 1 {
+                        out.write_all(b",")?;
+                    } else if !multiline {
+                        out.write_all(b" ")?;
                     }
                 }
 
