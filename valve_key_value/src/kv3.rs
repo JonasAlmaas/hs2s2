@@ -29,3 +29,10 @@ impl Display for Kv3Id {
         write!(f, "{}:version{{{}}}", self.name, self.id)
     }
 }
+
+/// Only applies to KV3
+#[derive(Debug, Clone)]
+pub struct KvHeader {
+    pub encoding: Kv3Id,
+    pub format: Kv3Id,
+}

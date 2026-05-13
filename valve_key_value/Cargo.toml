@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 indexmap = "2.14.0"
+thiserror = "2.0.18"
 uuid = "1.23.1"
 
 [lints.clippy]

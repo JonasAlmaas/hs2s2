@@ -3,7 +3,7 @@ use std::fs::{self, File};
 use indexmap::indexmap;
 use svg::node::element::tag::Type;
 use svg::parser::Event;
-use valve_key_value::{KvObject, KvSerilizationFormat};
+use valve_key_value::{KvFormat, KvObject};
 
 #[derive(Debug, Clone)]
 struct RectProperties {
@@ -117,5 +117,5 @@ fn main() -> std::io::Result<()> {
             })],
     )});
 
-    kv.serialize(&mut output, KvSerilizationFormat::Kv3Text, None)
+    kv.serialize(&mut output, KvFormat::Kv3Text, None)
 }
