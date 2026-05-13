@@ -92,6 +92,10 @@ fn get_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
 
     while let Some(&c) = it.peek() {
         match c {
+            '"' => {
+                it.next();
+                return Ok(Token::String(result));
+            }
             '\\' => {
                 it.next();
                 let &c = it.peek().ok_or(KvParseError::UnterminatedString)?;
@@ -104,10 +108,6 @@ fn get_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
                     _ => return Err(KvParseError::InvalidEscape),
                 }
                 it.next();
-            }
-            '"' => {
-                it.next();
-                return Ok(Token::String(result));
             }
             _ => {
                 result.push(c);
