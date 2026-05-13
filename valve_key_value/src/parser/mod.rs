@@ -15,15 +15,13 @@ pub enum KvParseError {
     InvalidEscape,
 }
 
-impl KvObject {
-    pub fn parse(input: &str, format: Option<KvFormat>) -> Result<KvObject, KvParseError> {
-        let format = match format {
-            Some(fmt) => fmt,
-            None => todo!("Automatic format detection is not supported yet"), // TODO
-        };
+pub fn parse_kv(input: &str, format: Option<KvFormat>) -> Result<KvObject, KvParseError> {
+    let format = match format {
+        Some(fmt) => fmt,
+        None => todo!("Automatic format detection is not supported yet"), // TODO
+    };
 
-        match format {
-            KvFormat::Kv3Text => kv3_text::parse_kv3_text(input),
-        }
+    match format {
+        KvFormat::Kv3Text => kv3_text::parse_kv3_text(input),
     }
 }

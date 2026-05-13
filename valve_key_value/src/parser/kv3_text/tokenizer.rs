@@ -200,7 +200,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, KvParseError> {
             '"' => tokens.push(get_string(&mut it)?),
             '0'..='9' | '+' | '-' => tokens.push(get_number(&mut it)?),
             'a'..='z' | 'A'..='Z' => tokens.push(get_identifier(&mut it)?),
-            ' ' | '\t' => {
+            ' ' | '\t' | '\r' | '\n' => {
                 it.next();
             }
             _ => {
