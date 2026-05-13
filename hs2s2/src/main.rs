@@ -50,7 +50,10 @@ fn parse_svg(file_str: &str) -> Option<Vec<Rect>> {
                             y,
                             width: w,
                             height: h,
-                            properties: None,
+                            properties: Some(RectProperties {
+                                allow_tiling: false,
+                                allow_rotation: true,
+                            }),
                         });
                     } else {
                         return None; // Missing header
