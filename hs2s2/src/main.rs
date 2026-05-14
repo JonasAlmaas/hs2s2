@@ -83,7 +83,7 @@ fn main() -> std::io::Result<()> {
 
             if let Some(props) = &rect.properties {
                 properties = KvObject::Map(indexmap! {
-                    "allowRotation".to_string() => KvObject::Bool(props.allow_tiling),
+                    "allowTiling".to_string() => KvObject::Bool(props.allow_tiling),
                     "allowRotation".to_string() => KvObject::Bool(props.allow_rotation),
                 });
             } else {
@@ -91,30 +91,31 @@ fn main() -> std::io::Result<()> {
             }
 
             KvObject::Map(indexmap! {
-                    "min".to_string() => KvObject::Array(vec![
-                        KvObject::Int(rect.x.into()),
-                        KvObject::Int(rect.y.into()),
-                    ]),
-                    "max".to_string() => KvObject::Array(vec![
-                        KvObject::Int((rect.x + rect.width).into()),
-                        KvObject::Int((rect.y + rect.height).into()),
-                    ]),
-                    "inset".to_string() => KvObject::Array(vec![
-                        KvObject::Int(0),
-                        KvObject::Int(0)
-                    ]),
+                "min".to_string() => KvObject::Array(vec![
+                    KvObject::Int(rect.x.into()),
+                    KvObject::Int(rect.y.into()),
+                ]),
+                "max".to_string() => KvObject::Array(vec![
+                    KvObject::Int((rect.x + rect.width).into()),
+                    KvObject::Int((rect.y + rect.height).into()),
+                ]),
+                "inset".to_string() => KvObject::Array(vec![
+                    KvObject::Int(0),
+                    KvObject::Int(0)
+                ]),
                "properties".to_string() => properties,
             })
         })
         .collect::<Vec<_>>();
 
     let kv = KvObject::Map(indexmap! {
-        "RectangleSets".to_string() => KvObject::Array(
-            vec![KvObject::Map(indexmap!{
+        "RectangleSets".to_string() => KvObject::Array(vec![
+            KvObject::Map(indexmap!{
                 "name".to_string() => KvObject::String("".to_string()),
                 "properties".to_string() => KvObject::Null,
                 "rectangles".to_string() => KvObject::Array(kv_rects),
-            })],
+            })
+        ],
     )});
 
     kv.serialize(&mut output, KvFormat::Kv3Text, None)
