@@ -112,13 +112,21 @@ fn parse_obj(it: &mut Peekable<Iter<Token>>) -> Result<KvObject, KvParseError> {
         Token::String(v) => Ok(KvObject::String(v.clone())),
         Token::Int(v) => Ok(KvObject::Int(*v)),
         Token::Float(v) => Ok(KvObject::Float(*v)),
-        Token::Identifier(id) => match id.as_str() {
-            "true" => Ok(KvObject::Bool(true)),
-            "false" => Ok(KvObject::Bool(false)),
-            _ => Err(KvParseError::UnexpectedToken(format!(
-                "Expected<true | false>  Actual<{id}>"
-            ))),
-        },
+        Token::Identifier(id) => {
+            if is_keyword(id) {
+                match id.as_str() {
+                    "true" => Ok(KvObject::Bool(true)),
+                    "false" => Ok(KvObject::Bool(false)),
+                    _ => Err(KvParseError::UnexpectedToken(format!(
+                        "Unknown keyword \"{id}\""
+                    ))),
+                }
+            } else {
+                Err(KvParseError::UnexpectedToken(format!(
+                    "Expected<keyword>  Actual<{id}>"
+                )))
+            }
+        }
         Token::RightCurly | Token::RightSquare | Token::Comma | Token::Equal | Token::Colon => {
             Err(KvParseError::UnexpectedToken(format!("{t:?}")))
         }
