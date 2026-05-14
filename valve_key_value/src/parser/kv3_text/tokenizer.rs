@@ -31,7 +31,7 @@ pub enum Token {
     Identifier(String),
 }
 
-fn get_xml_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_xml_comment(it: &mut Peekable<Chars>) -> Result<Token, KvParseError> {
     let mut result = String::new();
 
     if !matches!(it.next(), Some('<'))
@@ -39,7 +39,9 @@ fn get_xml_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> 
         || !matches!(it.next(), Some('-'))
         || !matches!(it.next(), Some('-'))
     {
-        return Err(KvParseError::UnexpectedToken);
+        return Err(KvParseError::UnexpectedSymbol(
+            "XML style comments must start with <!--".to_string(),
+        ));
     }
 
     while let Some(c) = it.next() {
@@ -55,7 +57,7 @@ fn get_xml_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> 
     Err(KvParseError::UnterminatedComment)
 }
 
-fn get_single_line_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_single_line_comment(it: &mut Peekable<Chars>) -> Result<Token, KvParseError> {
     let mut result = String::new();
 
     while let Some(&c) = it.peek() {
@@ -71,7 +73,7 @@ fn get_single_line_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvPars
     Ok(Token::Comment(result.trim().to_string()))
 }
 
-fn get_multi_line_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_multi_line_comment(it: &mut Peekable<Chars>) -> Result<Token, KvParseError> {
     let mut result = String::new();
     let mut prev = ' ';
 
@@ -90,28 +92,34 @@ fn get_multi_line_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParse
     Err(KvParseError::UnterminatedComment)
 }
 
-fn get_multi_line_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_multiline_string(it: &mut Peekable<Chars>) -> Result<Token, KvParseError> {
     let mut result = String::new();
+
+    if !matches!(it.next(), Some('\n')) {
+        return Err(KvParseError::UnexpectedSymbol(
+            "Multiline string must start with \"\"\"\\n".to_string(),
+        ));
+    }
 
     while let Some(c) = it.next() {
         result.push(c);
 
-        if result.ends_with("\"\"\"") {
-            return Ok(Token::String(result[..result.len() - 3].to_string()));
+        if result.ends_with("\n\"\"\"") {
+            return Ok(Token::String(result[..result.len() - 4].to_string()));
         }
     }
 
     Err(KvParseError::UnterminatedString)
 }
 
-fn get_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_string(it: &mut Peekable<Chars>) -> Result<Token, KvParseError> {
     let mut result = String::new();
 
     if matches!(it.peek(), Some('"')) {
         it.next();
         if matches!(it.peek(), Some('"')) {
             it.next();
-            return get_multi_line_string(it);
+            return get_multiline_string(it);
         } else {
             return Ok(Token::String(result));
         }
@@ -141,7 +149,7 @@ fn get_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
     Err(KvParseError::UnterminatedString)
 }
 
-fn get_number(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_number(it: &mut Peekable<Chars>) -> Result<Token, KvParseError> {
     let mut is_int = true;
     let mut s = String::new();
 
@@ -160,19 +168,17 @@ fn get_number(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
     }
 
     if is_int {
-        Ok(Token::Int(
-            s.parse::<i64>()
-                .map_err(|_| KvParseError::UnexpectedToken)?,
-        ))
+        Ok(Token::Int(s.parse::<i64>().map_err(|_| {
+            KvParseError::UnexpectedSymbol("Expected integer".to_string())
+        })?))
     } else {
-        Ok(Token::Float(
-            s.parse::<f64>()
-                .map_err(|_| KvParseError::UnexpectedToken)?,
-        ))
+        Ok(Token::Float(s.parse::<f64>().map_err(|_| {
+            KvParseError::UnexpectedSymbol("Expected float".to_string())
+        })?))
     }
 }
 
-fn get_identifier(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_identifier(it: &mut Peekable<Chars>) -> Result<Token, KvParseError> {
     let mut result = String::new();
 
     while let Some(&c) = it.peek() {
@@ -225,7 +231,11 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, KvParseError> {
                 match c {
                     '/' => tokens.push(get_single_line_comment(&mut it)?),
                     '*' => tokens.push(get_multi_line_comment(&mut it)?),
-                    _ => return Err(KvParseError::UnexpectedToken),
+                    _ => {
+                        return Err(KvParseError::UnexpectedSymbol(format!(
+                            "Expected<'/' | '*'>  Actual<'{c}'>"
+                        )));
+                    }
                 }
             }
             '"' => {
@@ -238,7 +248,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, KvParseError> {
                 it.next();
             }
             _ => {
-                return Err(KvParseError::UnexpectedToken);
+                return Err(KvParseError::UnexpectedSymbol(format!("'{c}'")));
             }
         }
     }
@@ -377,14 +387,15 @@ mod tests {
     fn multi_line_string() -> Result<(), KvParseError> {
         let input = r#"
 {
-"""Hello " \"
+"""
+Hello " \"
 \t world
 """
 ]
 "#;
         let expected = [
             Token::LeftCurly,
-            Token::String("Hello \" \\\"\n\\t world\n".to_string()),
+            Token::String("Hello \" \\\"\n\\t world".to_string()),
             Token::RightSquare,
         ];
 
@@ -399,6 +410,22 @@ mod tests {
     fn identifier() -> Result<(), KvParseError> {
         let input = "name";
         let expected = [Token::Identifier("name".to_string())];
+
+        let actual = tokenize(input)?;
+
+        assert_eq!(actual, expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn identifier_no_space() -> Result<(), KvParseError> {
+        let input = "name=2";
+        let expected = [
+            Token::Identifier("name".to_string()),
+            Token::Equal,
+            Token::Int(2),
+        ];
 
         let actual = tokenize(input)?;
 

@@ -4,7 +4,7 @@ pub mod serializer;
 
 use indexmap::IndexMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum KvObject {
     Null,
     String(String),
