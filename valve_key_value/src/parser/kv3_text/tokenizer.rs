@@ -6,13 +6,13 @@ use crate::parser::KvParseError;
 #[derive(Debug, PartialEq)]
 pub enum Token {
     // `{`
-    LeftBrace,
+    LeftCurly,
     /// `}`
-    RightBrace,
+    RightCurly,
     /// `[`
-    LeftBracket,
+    LeftSquare,
     /// `]`
-    RightBracket,
+    RightSquare,
     /// `,`
     Comma,
     /// `=`
@@ -31,73 +31,96 @@ pub enum Token {
     Identifier(String),
 }
 
-fn get_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_xml_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
     let mut result = String::new();
 
-    if !matches!(it.peek(), Some('<')) {
+    if !matches!(it.next(), Some('<'))
+        || !matches!(it.next(), Some('!'))
+        || !matches!(it.next(), Some('-'))
+        || !matches!(it.next(), Some('-'))
+    {
         return Err(KvParseError::UnexpectedToken);
     }
-    it.next();
-    if !matches!(it.peek(), Some('!')) {
-        return Err(KvParseError::UnexpectedToken);
-    }
-    it.next();
-    if !matches!(it.peek(), Some('-')) {
-        return Err(KvParseError::UnexpectedToken);
-    }
-    it.next().ok_or(KvParseError::UnexpectedToken)?;
-    if !matches!(it.peek(), Some('-')) {
-        return Err(KvParseError::UnexpectedToken);
-    }
-    it.next().ok_or(KvParseError::UnexpectedToken)?;
 
-    while let Some(&c) = it.peek() {
+    while let Some(c) = it.next() {
         result.push(c);
 
-        if c == '-' {
-            it.next();
-            let &c = it.peek().ok_or(KvParseError::UnterminatedComment)?;
-            if c == '-' {
-                while let Some(&c) = it.peek()
-                    && c == '-'
-                {
-                    result.push(c);
-                    it.next();
-                }
-
-                let &c = it.peek().ok_or(KvParseError::UnterminatedComment)?;
-                if c == '>' {
-                    result.push(c);
-                    it.next();
-                    return Ok(Token::Comment(
-                        result[..result.len() - 3].trim().to_string(),
-                    ));
-                }
-            }
-        } else {
-            it.next();
+        if result.ends_with("-->") {
+            return Ok(Token::Comment(
+                result[..result.len() - 3].trim().to_string(),
+            ));
         }
     }
 
     Err(KvParseError::UnterminatedComment)
 }
 
-fn get_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+fn get_single_line_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
     let mut result = String::new();
-
-    if !matches!(it.peek(), Some('"')) {
-        return Err(KvParseError::UnexpectedToken);
-    }
-    it.next();
 
     while let Some(&c) = it.peek() {
         match c {
-            '"' => {
+            '\n' => return Ok(Token::Comment(result.trim().to_string())),
+            _ => {
+                result.push(c);
                 it.next();
-                return Ok(Token::String(result));
             }
+        }
+    }
+
+    Ok(Token::Comment(result.trim().to_string()))
+}
+
+fn get_multi_line_comment(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+    let mut result = String::new();
+    let mut prev = ' ';
+
+    while let Some(c) = it.next() {
+        match c {
+            '/' if prev == '*' => {
+                _ = result.pop();
+                return Ok(Token::Comment(result.trim().to_string()));
+            }
+            _ => {
+                prev = c;
+                result.push(c);
+            }
+        }
+    }
+    Err(KvParseError::UnterminatedComment)
+}
+
+fn get_multi_line_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+    let mut result = String::new();
+
+    while let Some(c) = it.next() {
+        result.push(c);
+
+        if result.ends_with("\"\"\"") {
+            return Ok(Token::String(result[..result.len() - 3].to_string()));
+        }
+    }
+
+    Err(KvParseError::UnterminatedString)
+}
+
+fn get_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
+    let mut result = String::new();
+
+    if matches!(it.peek(), Some('"')) {
+        it.next();
+        if matches!(it.peek(), Some('"')) {
+            it.next();
+            return get_multi_line_string(it);
+        } else {
+            return Ok(Token::String(result));
+        }
+    }
+
+    while let Some(c) = it.next() {
+        match c {
+            '"' => return Ok(Token::String(result)),
             '\\' => {
-                it.next();
                 let &c = it.peek().ok_or(KvParseError::UnterminatedString)?;
                 match c {
                     '"' | '\\' => result.push(c),
@@ -111,7 +134,6 @@ fn get_string(it: &mut Peekable<Chars<'_>>) -> Result<Token, KvParseError> {
             }
             _ => {
                 result.push(c);
-                it.next();
             }
         }
     }
@@ -173,19 +195,19 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, KvParseError> {
     while let Some(&c) = it.peek() {
         match c {
             '{' => {
-                tokens.push(Token::LeftBrace);
+                tokens.push(Token::LeftCurly);
                 it.next();
             }
             '}' => {
-                tokens.push(Token::RightBrace);
+                tokens.push(Token::RightCurly);
                 it.next();
             }
             '[' => {
-                tokens.push(Token::LeftBracket);
+                tokens.push(Token::LeftSquare);
                 it.next();
             }
             ']' => {
-                tokens.push(Token::RightBracket);
+                tokens.push(Token::RightSquare);
                 it.next();
             }
             ',' => {
@@ -196,8 +218,20 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, KvParseError> {
                 tokens.push(Token::Equal);
                 it.next();
             }
-            '<' => tokens.push(get_comment(&mut it)?),
-            '"' => tokens.push(get_string(&mut it)?),
+            '<' => tokens.push(get_xml_comment(&mut it)?),
+            '/' => {
+                it.next();
+                let c = it.next().ok_or(KvParseError::UnterminatedComment)?;
+                match c {
+                    '/' => tokens.push(get_single_line_comment(&mut it)?),
+                    '*' => tokens.push(get_multi_line_comment(&mut it)?),
+                    _ => return Err(KvParseError::UnexpectedToken),
+                }
+            }
+            '"' => {
+                it.next();
+                tokens.push(get_string(&mut it)?);
+            }
             '0'..='9' | '+' | '-' => tokens.push(get_number(&mut it)?),
             'a'..='z' | 'A'..='Z' => tokens.push(get_identifier(&mut it)?),
             ' ' | '\t' | '\r' | '\n' => {
@@ -232,10 +266,10 @@ mod tests {
     fn all_punctuation() -> Result<(), KvParseError> {
         let input = "[{]},=";
         let expected = [
-            Token::LeftBracket,
-            Token::LeftBrace,
-            Token::RightBracket,
-            Token::RightBrace,
+            Token::LeftSquare,
+            Token::LeftCurly,
+            Token::RightSquare,
+            Token::RightCurly,
             Token::Comma,
             Token::Equal,
         ];
@@ -248,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn comment() -> Result<(), KvParseError> {
+    fn xml_comment() -> Result<(), KvParseError> {
         let input = r#"<!-- This is a comment -->"#;
         let expected = [Token::Comment("This is a comment".to_string())];
 
@@ -260,9 +294,41 @@ mod tests {
     }
 
     #[test]
-    fn empty_comment() -> Result<(), KvParseError> {
+    fn empty_xml_comment() -> Result<(), KvParseError> {
         let input = r#"<!---->"#;
         let expected = [Token::Comment("".to_string())];
+
+        let actual = tokenize(input)?;
+
+        assert_eq!(actual, expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn single_line_comment() -> Result<(), KvParseError> {
+        let input = "foo // bar \n  baz";
+        let expected = [
+            Token::Identifier("foo".to_string()),
+            Token::Comment("bar".to_string()),
+            Token::Identifier("baz".to_string()),
+        ];
+
+        let actual = tokenize(input)?;
+
+        assert_eq!(actual, expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn multi_line_comment() -> Result<(), KvParseError> {
+        let input = "foo /* bar \n\n baz */  baz";
+        let expected = [
+            Token::Identifier("foo".to_string()),
+            Token::Comment("bar \n\n baz".to_string()),
+            Token::Identifier("baz".to_string()),
+        ];
 
         let actual = tokenize(input)?;
 
@@ -299,6 +365,28 @@ mod tests {
     fn empty_string() -> Result<(), KvParseError> {
         let input = r#""""#;
         let expected = [Token::String("".to_string())];
+
+        let actual = tokenize(input)?;
+
+        assert_eq!(actual, expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn multi_line_string() -> Result<(), KvParseError> {
+        let input = r#"
+{
+"""Hello " \"
+\t world
+"""
+]
+"#;
+        let expected = [
+            Token::LeftCurly,
+            Token::String("Hello \" \\\"\n\\t world\n".to_string()),
+            Token::RightSquare,
+        ];
 
         let actual = tokenize(input)?;
 
@@ -371,18 +459,18 @@ mod tests {
     fn complex() -> Result<(), KvParseError> {
         let input = r#"{ name=["1", 3.14159 , {}  ] }"#;
         let expected = [
-            Token::LeftBrace,
+            Token::LeftCurly,
             Token::Identifier("name".to_string()),
             Token::Equal,
-            Token::LeftBracket,
+            Token::LeftSquare,
             Token::String("1".to_string()),
             Token::Comma,
             Token::Float(3.14159),
             Token::Comma,
-            Token::LeftBrace,
-            Token::RightBrace,
-            Token::RightBracket,
-            Token::RightBrace,
+            Token::LeftCurly,
+            Token::RightCurly,
+            Token::RightSquare,
+            Token::RightCurly,
         ];
 
         let actual = tokenize(input)?;
