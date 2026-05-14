@@ -1,3 +1,5 @@
+pub mod kv3_text;
+
 use std::fmt::Display;
 
 use uuid::{Uuid, uuid};

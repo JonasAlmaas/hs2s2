@@ -1,5 +1,3 @@
-mod kv3_text;
-
 use std::io::Write;
 
 use crate::kv3::{self, Kv3Id, KvHeader};
@@ -35,9 +33,9 @@ impl KvObject {
                 out.write_fmt(format_args!(
                     "<!-- kv3 encoding:{encoding} format:{format} -->"
                 ))?;
-                out.write_all(kv3_text::NEW_LINE)?;
-                kv3_text::serialize_object(out, self, 0)?;
-                out.write_all(kv3_text::NEW_LINE)?;
+                out.write_all(kv3::kv3_text::NEW_LINE)?;
+                kv3::kv3_text::serializer::serialize_object(out, self, 0)?;
+                out.write_all(kv3::kv3_text::NEW_LINE)?;
 
                 Ok(())
             }

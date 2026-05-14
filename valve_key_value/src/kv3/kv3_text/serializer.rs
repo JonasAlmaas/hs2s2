@@ -2,9 +2,8 @@ use std::io::Write;
 
 use indexmap::IndexMap;
 
+use crate::kv3::kv3_text::NEW_LINE;
 use crate::{KvMapEntry, KvObject};
-
-pub const NEW_LINE: &[u8] = b"\r\n";
 
 fn write_indent(out: &mut impl Write, indent: usize) -> Result<(), std::io::Error> {
     for _ in 0..indent {

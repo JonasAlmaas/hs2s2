@@ -1,13 +1,11 @@
-mod tokenizer;
-
 use std::iter::Peekable;
 use std::slice::Iter;
 
 use indexmap::IndexMap;
 
 use crate::KvObject;
+use crate::kv3::kv3_text::tokenizer::{Token, tokenize};
 use crate::parser::KvParseError;
-use crate::parser::kv3_text::tokenizer::{Token, tokenize};
 
 fn consume_comments(it: &mut Peekable<Iter<Token>>) {
     while let Some(t) = it.peek() {
@@ -128,7 +126,7 @@ fn parse_obj(it: &mut Peekable<Iter<Token>>) -> Result<KvObject, KvParseError> {
     }
 }
 
-pub fn parse_kv3_text(input: &str) -> Result<KvObject, KvParseError> {
+pub fn parse(input: &str) -> Result<KvObject, KvParseError> {
     let tokens = tokenize(input)?;
     let mut it = tokens.iter().peekable();
     parse_obj(&mut it)
@@ -147,7 +145,7 @@ mod tests {
         let input = "{}";
         let expected = KvObject::Map(IndexMap::new());
 
-        let actual = parse_kv3_text(input)?;
+        let actual = parse(input)?;
 
         assert_eq!(actual, expected);
 
@@ -159,7 +157,7 @@ mod tests {
         let input = "[]";
         let expected = KvObject::Array(Vec::new());
 
-        let actual = parse_kv3_text(input)?;
+        let actual = parse(input)?;
 
         assert_eq!(actual, expected);
 
@@ -182,7 +180,7 @@ mod tests {
             "baz".to_string() => KvMapEntry::new(KvObject::String("my string".to_string())),
         });
 
-        let actual = parse_kv3_text(input)?;
+        let actual = parse(input)?;
 
         assert_eq!(actual, expected);
 
@@ -200,7 +198,7 @@ mod tests {
             ]))
         });
 
-        let actual = parse_kv3_text(input)?;
+        let actual = parse(input)?;
 
         assert_eq!(actual, expected);
 
@@ -212,7 +210,7 @@ mod tests {
         let input = "[ 1, 2, 3 ]";
         let expected = KvObject::Array(vec![KvObject::Int(1), KvObject::Int(2), KvObject::Int(3)]);
 
-        let actual = parse_kv3_text(input)?;
+        let actual = parse(input)?;
 
         assert_eq!(actual, expected);
 
@@ -227,7 +225,7 @@ mod tests {
             KvObject::Int(3),
         ]);
 
-        let actual = parse_kv3_text(input)?;
+        let actual = parse(input)?;
 
         assert_eq!(actual, expected);
 
@@ -277,7 +275,7 @@ mod tests {
             ])),
         });
 
-        let actual = parse_kv3_text(input)?;
+        let actual = parse(input)?;
 
         assert_eq!(actual, expected);
 

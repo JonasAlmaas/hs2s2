@@ -1,5 +1,4 @@
-mod kv3_text;
-
+use crate::kv3;
 use crate::{KvFormat, KvObject};
 
 #[derive(thiserror::Error, Debug)]
@@ -34,6 +33,6 @@ pub fn parse_kv(input: &str, format: Option<KvFormat>) -> Result<KvObject, KvPar
     };
 
     match format {
-        KvFormat::Kv3Text => kv3_text::parse_kv3_text(input),
+        KvFormat::Kv3Text => kv3::kv3_text::parser::parse(input),
     }
 }
