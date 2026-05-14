@@ -159,18 +159,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_simple_array() -> Result<(), KvParseError> {
-        let input = "[ 1, 2, 3 ]";
-        let expected = KvObject::Array(vec![KvObject::Int(1), KvObject::Int(2), KvObject::Int(3)]);
-
-        let actual = parse_kv3_text(input)?;
-
-        assert_eq!(actual, expected);
-
-        Ok(())
-    }
-
-    #[test]
     fn parse_map_with_array() -> Result<(), KvParseError> {
         let input = "{ foo = [ 1, 2, 3 ] }";
         let expected = KvObject::Map(indexmap! {
@@ -189,6 +177,33 @@ mod tests {
     }
 
     #[test]
+    fn parse_simple_array() -> Result<(), KvParseError> {
+        let input = "[ 1, 2, 3 ]";
+        let expected = KvObject::Array(vec![KvObject::Int(1), KvObject::Int(2), KvObject::Int(3)]);
+
+        let actual = parse_kv3_text(input)?;
+
+        assert_eq!(actual, expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_nested_array() -> Result<(), KvParseError> {
+        let input = "[ [ 1, 2 ], 3 ]";
+        let expected = KvObject::Array(vec![
+            KvObject::Array(vec![KvObject::Int(1), KvObject::Int(2)]),
+            KvObject::Int(3),
+        ]);
+
+        let actual = parse_kv3_text(input)?;
+
+        assert_eq!(actual, expected);
+
+        Ok(())
+    }
+
+    #[test]
     fn parse_complex_map() -> Result<(), KvParseError> {
         let input = r#"
 <!-- Header -->
@@ -197,7 +212,7 @@ mod tests {
     foo = true
     bar=false
     baz = "my string"
-    aa =
+    aa = 
     {
         foo = 12
         bar = 3.14
