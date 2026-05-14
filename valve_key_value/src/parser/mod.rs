@@ -30,7 +30,7 @@ pub enum KvParseError {
 pub fn parse_kv(input: &str, format: Option<KvFormat>) -> Result<KvObject, KvParseError> {
     let format = match format {
         Some(fmt) => fmt,
-        None => todo!("Automatic format detection is not supported yet"), // TODO
+        None => todo!("Automatic format detection is not supported yet"),
     };
 
     match format {

@@ -18,6 +18,12 @@ pub const ENC_BIN: Uuid = uuid!("1b860500-f7d8-40c1-ad82-75a48267e714");
 /// Human-readable text encoding with an XML-style comment header
 pub const ENC_EXT: Uuid = uuid!("e21c7f3c-8a33-41c5-9977-a76d3a32aa0d");
 
+pub const FLAG_RESOURCE: &str = "resource";
+pub const FLAG_RESOURCE_NAME: &str = "resourcename";
+pub const FLAG_PANORAMA: &str = "panorama";
+pub const FLAG_SOUNDEVENT: &str = "soundevent";
+pub const FLAG_SUBCLASS: &str = "subclass";
+
 #[derive(Debug, Clone)]
 pub struct Kv3Id {
     pub name: String,

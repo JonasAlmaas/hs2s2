@@ -18,6 +18,13 @@ fn consume_comments(it: &mut Peekable<Iter<Token>>) {
     }
 }
 
+fn is_keyword(id: &str) -> bool {
+    match id {
+        "true" | "false" => true,
+        _ => false,
+    }
+}
+
 fn parse_map(it: &mut Peekable<Iter<Token>>) -> Result<KvObject, KvParseError> {
     let mut result = IndexMap::new();
 
@@ -26,14 +33,35 @@ fn parse_map(it: &mut Peekable<Iter<Token>>) -> Result<KvObject, KvParseError> {
     while let Some(t) = it.next() {
         match t {
             Token::RightCurly => return Ok(KvObject::Map(result)),
-            Token::Identifier(id) => {
+            Token::Identifier(key) => {
+                if result.contains_key(key) {
+                    return Err(KvParseError::DuplicateKey(key.clone()));
+                }
+
                 consume_comments(it);
+
                 let t = it.next().ok_or(KvParseError::EarlyEnd)?;
                 if matches!(t, Token::Equal) {
-                    if result.contains_key(id) {
-                        return Err(KvParseError::DuplicateKey(id.clone()));
+                    let mut flag = None;
+
+                    // Check for flags
+                    if let Some(Token::Identifier(flag_id)) = it.peek()
+                        && !is_keyword(flag_id)
+                    {
+                        _ = it.next();
+                        let t = it.next().ok_or(KvParseError::EarlyEnd)?;
+                        if matches!(t, Token::Colon) {
+                            flag = Some(flag_id.clone());
+                        } else {
+                            return Err(KvParseError::UnexpectedToken(format!(
+                                "Expected<:>  Actual<{t:?}>"
+                            )));
+                        }
                     }
-                    result.insert(id.clone(), parse_obj(it)?);
+
+                    let value = parse_obj(it)?;
+
+                    result.insert(key.clone(), crate::KvMapEntry { value, flag });
                 } else {
                     return Err(KvParseError::UnexpectedToken(format!(
                         "Expected<=>  Actual<{t:?}>"
@@ -93,7 +121,7 @@ fn parse_obj(it: &mut Peekable<Iter<Token>>) -> Result<KvObject, KvParseError> {
                 "Expected<true | false>  Actual<{id}>"
             ))),
         },
-        Token::RightCurly | Token::RightSquare | Token::Comma | Token::Equal => {
+        Token::RightCurly | Token::RightSquare | Token::Comma | Token::Equal | Token::Colon => {
             Err(KvParseError::UnexpectedToken(format!("{t:?}")))
         }
         Token::Comment(_) => unreachable!(),
@@ -109,6 +137,8 @@ pub fn parse_kv3_text(input: &str) -> Result<KvObject, KvParseError> {
 #[cfg(test)]
 mod tests {
     use indexmap::indexmap;
+
+    use crate::KvMapEntry;
 
     use super::*;
 
@@ -145,10 +175,11 @@ mod tests {
     baz = "my string"
 }
 "#;
+
         let expected = KvObject::Map(indexmap! {
-            "foo".to_string() => KvObject::Int(1),
-            "bar".to_string() => KvObject::Float(3.14),
-            "baz".to_string() => KvObject::String("my string".to_string()),
+            "foo".to_string() => KvMapEntry::new(KvObject::Int(1)),
+            "bar".to_string() => KvMapEntry::new(KvObject::Float(3.14)),
+            "baz".to_string() => KvMapEntry::new(KvObject::String("my string".to_string())),
         });
 
         let actual = parse_kv3_text(input)?;
@@ -162,11 +193,11 @@ mod tests {
     fn parse_map_with_array() -> Result<(), KvParseError> {
         let input = "{ foo = [ 1, 2, 3 ] }";
         let expected = KvObject::Map(indexmap! {
-            "foo".to_string() => KvObject::Array(vec![
+            "foo".to_string() => KvMapEntry::new(KvObject::Array(vec![
                 KvObject::Int(1),
                 KvObject::Int(2),
                 KvObject::Int(3),
-            ])
+            ]))
         });
 
         let actual = parse_kv3_text(input)?;
@@ -227,23 +258,23 @@ mod tests {
 }
 "#;
         let expected = KvObject::Map(indexmap! {
-            "foo".to_string() => KvObject::Bool(true),
-            "bar".to_string() => KvObject::Bool(false),
-            "baz".to_string() => KvObject::String("my string".to_string()),
-            "aa".to_string() => KvObject::Map(indexmap! {
-                "foo".to_string() => KvObject::Int(12),
-                "bar".to_string() => KvObject::Float(3.14),
-            }),
-            "bb".to_string() => KvObject::Array(vec![
+            "foo".to_string() => KvMapEntry::new(KvObject::Bool(true)),
+            "bar".to_string() => KvMapEntry::new(KvObject::Bool(false)),
+            "baz".to_string() => KvMapEntry::new(KvObject::String("my string".to_string())),
+            "aa".to_string() => KvMapEntry::new(KvObject::Map(indexmap! {
+                "foo".to_string() => KvMapEntry::new(KvObject::Int(12)),
+                "bar".to_string() => KvMapEntry::new(KvObject::Float(3.14)),
+            })),
+            "bb".to_string() => KvMapEntry::new(KvObject::Array(vec![
                 KvObject::Int(0),
                 KvObject::Int(1),
                 KvObject::Int(2),
-            ]),
-            "cc".to_string() => KvObject::Array(vec![
+            ])),
+            "cc".to_string() => KvMapEntry::new(KvObject::Array(vec![
                 KvObject::Map(indexmap! {
-                    "inner".to_string() => KvObject::Bool(true)
+                    "inner".to_string() => KvMapEntry::new(KvObject::Bool(true))
                 })
-            ]),
+            ])),
         });
 
         let actual = parse_kv3_text(input)?;

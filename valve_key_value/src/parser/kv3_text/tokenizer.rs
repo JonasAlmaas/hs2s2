@@ -17,11 +17,13 @@ pub enum Token {
     Comma,
     /// `=`
     Equal,
+    /// `'`
+    Colon,
 
-    /// `<!--` ... `-->`
+    /// `//` | `/*` .. `*/` | `<!--` ... `-->`
     Comment(String),
 
-    /// `"hello"`
+    /// `"hello"` | `"""\n` ... `\n"""`
     String(String),
     /// `3`
     Int(i64),
@@ -224,6 +226,10 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, KvParseError> {
                 tokens.push(Token::Equal);
                 it.next();
             }
+            ':' => {
+                tokens.push(Token::Colon);
+                it.next();
+            }
             '<' => tokens.push(get_xml_comment(&mut it)?),
             '/' => {
                 it.next();
@@ -274,7 +280,7 @@ mod tests {
 
     #[test]
     fn all_punctuation() -> Result<(), KvParseError> {
-        let input = "[{]},=";
+        let input = "[{]},=:";
         let expected = [
             Token::LeftSquare,
             Token::LeftCurly,
@@ -282,6 +288,7 @@ mod tests {
             Token::RightCurly,
             Token::Comma,
             Token::Equal,
+            Token::Colon,
         ];
 
         let actual = tokenize(input)?;

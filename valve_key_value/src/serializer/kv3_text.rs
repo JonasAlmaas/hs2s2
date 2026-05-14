@@ -2,7 +2,7 @@ use std::io::Write;
 
 use indexmap::IndexMap;
 
-use crate::KvObject;
+use crate::{KvMapEntry, KvObject};
 
 pub const NEW_LINE: &[u8] = b"\r\n";
 
@@ -30,7 +30,7 @@ fn is_multiline(obj: &KvObject) -> bool {
 
 fn serialize_map(
     out: &mut impl Write,
-    map: &IndexMap<String, KvObject>,
+    map: &IndexMap<String, KvMapEntry>,
     indent: usize,
 ) -> Result<(), std::io::Error> {
     out.write_all(b"{")?;
@@ -42,11 +42,14 @@ fn serialize_map(
         for (k, v) in map {
             write_indent(out, indent)?;
             out.write_fmt(format_args!("{} = ", k))?;
-            if is_multiline(v) {
+            if let Some(flag) = &v.flag {
+                out.write_fmt(format_args!("{}:", flag))?;
+            }
+            if is_multiline(&v.value) {
                 out.write_all(NEW_LINE)?;
                 write_indent(out, indent)?;
             }
-            serialize_object(out, v, indent)?;
+            serialize_object(out, &v.value, indent)?;
             out.write_all(NEW_LINE)?;
         }
     }
@@ -171,8 +174,12 @@ mod tests {
         serialize_map(
             &mut buf,
             &indexmap! {
-               "foo".to_string() => KvObject::Null,
-               "bar".to_string() => KvObject::Int(1234),
+               "foo".to_string() => KvMapEntry::new(KvObject::Null),
+               "bar".to_string() => KvMapEntry::new(KvObject::Int(1234)),
+               "baz".to_string() => KvMapEntry {
+                   value: KvObject::String("my string".to_string()),
+                   flag: Some("flag1".to_string()),
+               },
             },
             0,
         )
@@ -183,6 +190,7 @@ mod tests {
             "{\r
 \tfoo = null\r
 \tbar = 1234\r
+\tbaz = flag1:\"my string\"\r
 }"
         );
     }
@@ -211,12 +219,12 @@ mod tests {
             &mut buf,
             &vec![
                 KvObject::Map(indexmap! {
-                    "foo".to_string() => KvObject::Int(1),
-                    "bar".to_string() => KvObject::Int(2),
+                    "foo".to_string() => KvMapEntry::new(KvObject::Int(1)),
+                    "bar".to_string() => KvMapEntry::new(KvObject::Int(2)),
                 }),
                 KvObject::Map(indexmap! {
-                    "foo".to_string() => KvObject::Int(3),
-                    "bar".to_string() => KvObject::Int(4),
+                    "foo".to_string() => KvMapEntry::new(KvObject::Int(3)),
+                    "bar".to_string() => KvMapEntry::new(KvObject::Int(4)),
                 }),
             ],
             0,
